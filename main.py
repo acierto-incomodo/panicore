@@ -14,11 +14,11 @@ from PySide6 import QtCore, QtWidgets, QtGui
 
 LAUNCHER_VERSION = "1.0.0"
 
-# Windows build is split into two parts
-BUILD_URL_WIN_PART1 = "https://github.com/acierto-incomodo/panicore/releases/latest/download/Build.zip"
+BASE_URL_WIN = "https://github.com/acierto-incomodo/panicore/releases/latest/download/Build.zip"
 BUILD_URL_LINUX = "https://github.com/acierto-incomodo/panicore/releases/latest/download/Build.zip"
 VERSION_URL = "https://github.com/acierto-incomodo/panicore/releases/latest/download/version.txt"
 RELEASE_NOTES_URL = "https://github.com/acierto-incomodo/panicore/releases/latest/download/ReleaseNotes.txt"
+URL_7ZR = "https://github.com/acierto-incomodo/panicore/releases/latest/download/7zr.exe"
 
 EXE_NAME_WIN   = "Build/Panicore.exe"
 EXE_NAME_LINUX = "Build/Panicore.exe"
@@ -279,15 +279,6 @@ class LauncherWindow(QtWidgets.QWidget):
 
     def _update_thread(self):
         try:
-            if sys.platform.startswith("win"):
-                downloads = [
-                    (BUILD_URL_WIN_PART1, "Build.zip"),
-                ]
-            else:
-                downloads = [
-                    (BUILD_URL_LINUX, "BuildLinux.zip"),
-                ]
-
             def progress_cb(downloaded, total):
                 percent = int(downloaded * 100 / total) if total else 0
                 QtCore.QMetaObject.invokeMethod(
@@ -296,20 +287,57 @@ class LauncherWindow(QtWidgets.QWidget):
                     QtCore.Q_ARG(int, percent)
                 )
 
-            for idx, (url, zip_name) in enumerate(downloads):
-                zip_path = DOWNLOAD_DIR / zip_name
-                self.set_status(f"Descargando {zip_name}...")
-                download_file(url, zip_path, progress_cb)
+            if sys.platform.startswith("win"):
+                # --- WINDOWS: 7zip Split ---
+                
+                # 1. Descargar 7zr.exe
+                self.set_status("Descargando herramienta 7zr...")
+                p_7zr = DOWNLOAD_DIR / "7zr.exe"
+                download_file(URL_7ZR, p_7zr, progress_cb)
 
-                self.set_status(f"Extrayendo {zip_name}...")
-                # clear BUILD_DIR on first part, keep files on subsequent parts
-                extract_zip(zip_path, BUILD_DIR, clear=(idx == 0))
+                # 2. Descargar partes .001 a .012
+                total_parts = 12
+                for i in range(1, total_parts + 1):
+                    ext = f".{i:03d}"
+                    url = f"{BASE_URL_WIN}{ext}"
+                    fname = f"Build.zip{ext}"
+                    self.set_status(f"Descargando parte {i}/{total_parts}...")
+                    download_file(url, DOWNLOAD_DIR / fname, progress_cb)
 
-                # eliminar archivo zip descargado
-                try:
-                    zip_path.unlink()
-                except Exception:
-                    pass
+                # 3. Extraer usando 7zr
+                self.set_status("Extrayendo archivos (esto puede tardar)...")
+                
+                if BUILD_DIR.exists():
+                    shutil.rmtree(BUILD_DIR)
+                BUILD_DIR.mkdir(parents=True, exist_ok=True)
+
+                # Configurar para que no salga ventana de consola
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
+                cmd = [
+                    str(p_7zr), "x", "-y",
+                    f"-o{BUILD_DIR}",
+                    str(DOWNLOAD_DIR / "Build.zip.001")
+                ]
+                subprocess.run(cmd, check=True, startupinfo=startupinfo)
+
+            else:
+                # --- LINUX / MAC ---
+                downloads = [
+                    (BUILD_URL_LINUX, "BuildLinux.zip"),
+                ]
+                for idx, (url, zip_name) in enumerate(downloads):
+                    zip_path = DOWNLOAD_DIR / zip_name
+                    self.set_status(f"Descargando {zip_name}...")
+                    download_file(url, zip_path, progress_cb)
+
+                    self.set_status(f"Extrayendo {zip_name}...")
+                    extract_zip(zip_path, BUILD_DIR, clear=(idx == 0))
+                    try:
+                        zip_path.unlink()
+                    except Exception:
+                        pass
 
             self.set_status("Descargando version.txt...")
             version = requests.get(VERSION_URL, timeout=30).text.strip()

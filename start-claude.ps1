@@ -1,0 +1,1 @@
+claude --settings .\.claude\settings.json
