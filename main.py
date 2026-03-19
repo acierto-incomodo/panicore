@@ -304,23 +304,23 @@ class LauncherWindow(QtWidgets.QWidget):
                     self.set_status(f"Descargando parte {i}/{total_parts}...")
                     download_file(url, DOWNLOAD_DIR / fname, progress_cb)
 
-                # 3. Extraer usando 7zr
-                self.set_status("Extrayendo archivos (esto puede tardar)...")
+                # 3. Unir partes para obtener Build.zip en descargas
+                self.set_status("Reconstruyendo Build.zip...")
                 
-                if BUILD_DIR.exists():
-                    shutil.rmtree(BUILD_DIR)
-                BUILD_DIR.mkdir(parents=True, exist_ok=True)
-
                 # Configurar para que no salga ventana de consola
                 startupinfo = subprocess.STARTUPINFO()
                 startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
 
                 cmd = [
                     str(p_7zr), "x", "-y",
-                    f"-o{BUILD_DIR}",
+                    f"-o{DOWNLOAD_DIR}",
                     str(DOWNLOAD_DIR / "Build.zip.001")
                 ]
                 subprocess.run(cmd, check=True, startupinfo=startupinfo)
+
+                # 4. Descomprimir Build.zip en la carpeta del juego
+                self.set_status("Instalando archivos del juego...")
+                extract_zip(DOWNLOAD_DIR / "Build.zip", BUILD_DIR, clear=True)
 
             else:
                 # --- LINUX / MAC ---
