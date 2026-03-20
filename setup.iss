@@ -1,7 +1,7 @@
 [Setup]
 AppName=Panicore by StormGamesStudios
-AppVersion=1.0.4
-DefaultDirName={userappdata}\StormGamesStudios\Programs\Panicore
+AppVersion=1.0.5
+DefaultDirName={userappdata}\StormGamesStudios\NewGameDir\Panicore
 DefaultGroupName=StormGamesStudios
 OutputDir=C:\Users\melio\Documents\GitHub\panicore\output
 OutputBaseFilename=Panicore_Launcher_Installer
@@ -11,7 +11,7 @@ AppCopyright=Copyright © 2025 StormGamesStudios. All rights reserved.
 VersionInfoCompany=StormGamesStudios
 AppPublisher=StormGamesStudios
 SetupIconFile=panicore.ico
-VersionInfoVersion=1.0.4.0
+VersionInfoVersion=1.0.5.0
 DisableProgramGroupPage=yes
 ; Habilitar selección de carpeta
 DisableDirPage=yes
@@ -99,7 +99,7 @@ end;
 procedure UninstallOldVersion();
 begin
   // 1. Revisar la ruta de la versión anterior específica
-  RunUninstaller(ExpandConstant('{userappdata}\StormGamesStudios\NewGameDir\'));
+  RunUninstaller(ExpandConstant('{userappdata}\StormGamesStudios\NewGameDir\Panicore'));
   
   // 2. Revisar la ruta donde se va a instalar actualmente (por si es una reinstalación/actualización)
   RunUninstaller(ExpandConstant('{app}'));
